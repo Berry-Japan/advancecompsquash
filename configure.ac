@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT([AdvanceCOMPsquash],[0.1])
+AC_INIT([AdvanceCOMPsquash],[2.2r2])
 AC_CONFIG_SRCDIR([mksquashfs.c])
 AM_INIT_AUTOMAKE([foreign no-dependencies])
 AC_CONFIG_HEADERS([config.h])

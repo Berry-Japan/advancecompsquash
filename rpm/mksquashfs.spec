@@ -1,5 +1,5 @@
 %define name mksquashfs
-%define version 0.1
+%define version 2.2r2
 %define rel 1
 %define release b%{rel}
 
@@ -81,5 +81,7 @@ rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 ##
 
 %changelog
+* Mon Jun 19 2006 Yuichiro Nakada <berry@po.yui.mine.nu>
+- Update to 2.2r2
 * Mon Jun 13 2005 Yuichiro Nakada <berry@po.yui.mine.nu>
 - Create for Berry Linux

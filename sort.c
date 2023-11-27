@@ -1,7 +1,8 @@
 /*
  * Create a squashfs filesystem.  This is a highly compressed read only filesystem.
  *
- * Copyright (c) 2002, 2003, 2004 Phillip Lougher <plougher@users.sourceforge.net>
+ * Copyright (c) 2002, 2003, 2004, 2005
+ * Phillip Lougher <phillip@lougher.demon.co.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,6 +35,7 @@
 #include <stdlib.h>
 
 #include <squashfs_fs.h>
+#include "global.h"
 
 #ifdef SQUASHFS_TRACE
 #define TRACE(s, args...)		printf("mksquashfs: "s, ## args)
@@ -183,8 +185,8 @@ int add_sort_list(char *path, int priority, int source, char *source_path[])
 re_read:
 	if(path[0] == '/' || strncmp(path, "./", 2) == 0 || strncmp(path, "../", 3) == 0 || mkisofs_style == 1) {
 		if(lstat(path, &buf) == -1)
-			return TRUE;
-		TRACE("adding filename %s, priority %d, st_dev %Lx, st_ino %Lx\n", path, priority, buf.st_dev, buf.st_ino);
+			goto error;
+		TRACE("adding filename %s, priority %d, st_dev %llx, st_ino %llx\n", path, priority, buf.st_dev, buf.st_ino);
 		ADD_ENTRY(buf, priority);
 		return TRUE;
 	}
@@ -220,11 +222,10 @@ re_read:
 		BAD_ERROR(" Ambiguous sortlist entry \"%s\"\n\nIt maps to more than one source entry!  Please use an absolute path.\n", path);
 
 error:
-	BAD_ERROR(" Cannot stat sortlist entry \"%s\"\nThis is probably because you're using the wrong \
-file\npath relative to the source directories.  A sortlist entry should be\neither absolute (starting with \
-'/') start with './' or '../' (taken to be\nrelative to $PWD), otherwise it \
-is assumed the entry is relative to one\nof the source directories, i.e. with \"mksquashfs test test.sqsh\",\nthe sortlist \
-entry \"file\" is assumed to be inside the directory test.\n", path);
+	fprintf(stderr, "Cannot stat sortlist entry \"%s\"\n", path);
+	fprintf(stderr, "This is probably because you're using the wrong file\n");
+	fprintf(stderr, "path relative to the source directories\n");
+	return FALSE;
 }
 
 
@@ -319,11 +320,11 @@ void sort_files_and_write(int source, char *source_path[])
 		}
 	}
 
-	for(i = 0; i < 65536; i++)
+	for(i = 65535; i >= 0; i--)
 		for(entry = priority_list[i]; entry; entry = entry->next) {
 			TRACE("%d: %s\n", i - 32768, entry->filename);
 			write_file(&inode, entry->filename, entry->size, &duplicate_file);
-			INFO("file %s, uncompressed size %Ld bytes, %s\n", entry->filename, entry->size, duplicate_file ? "DUPLICATE" : "");
+			INFO("file %s, uncompressed size %lld bytes, %s\n", entry->filename, entry->size, duplicate_file ? "DUPLICATE" : "");
 			add_to_sorted_inode_list(inode, entry->st_dev, entry->st_ino);
 		}
 }

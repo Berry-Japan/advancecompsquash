@@ -1,7 +1,8 @@
 /*
  * Read a squashfs filesystem.  This is a highly compressed read only filesystem.
  *
- * Copyright (c) 2002, 2003, 2004 Phillip Lougher <plougher@users.sourceforge.net>
+ * Copyright (c) 2002, 2003, 2004, 2005
+ * Phillip Lougher <phillip@lougher.demon.co.uk>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,10 +34,11 @@ extern int add_file(int, int, unsigned int *, int, unsigned int, int, int);
 #include <string.h>
 #include <zlib.h>
 #include <sys/mman.h>
-
 #include <endian.h>
-#include "read_fs.h"
+
 #include <squashfs_fs.h>
+#include "read_fs.h"
+#include "global.h"
 
 #include <stdlib.h>
 
@@ -294,7 +296,7 @@ int read_super(int fd, squashfs_super_block *sBlk, int *be, char *source)
 	/* Check the MAJOR & MINOR versions */
 	if(sBlk->s_major != SQUASHFS_MAJOR || sBlk->s_minor > SQUASHFS_MINOR) {
 		if(sBlk->s_major == 1)
-			ERROR("Filesystem on %s is a SQUASHFS 1.x filesystem.  Appending\nto SQUASHFS 1.x filesystems is not supported.  Please convert it to a SQUASHFS 2.1 filesystem...n", source);
+			ERROR("Filesystem on %s is a SQUASHFS 1.x filesystem.  Appending\nto SQUASHFS 1.x filesystems is not supported.  Please convert it\nto a SQUASHFS 2.1 filesystem...\n", source);
 		else
 			ERROR("Major/Minor mismatch, filesystem on %s is (%d:%d), I support (%d: <= %d)\n",
 				source, sBlk->s_major, sBlk->s_minor, SQUASHFS_MAJOR, SQUASHFS_MINOR);

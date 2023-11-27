@@ -3,6 +3,7 @@
 bin_PROGRAMS = mksquashfs2
 
 mksquashfs2_SOURCES = \
+	global.h \
 	mksquashfs.h \
 	read_fs.h \
 	squashfs_fs.h \
@@ -64,6 +65,7 @@ EXTRA_DIST = \
 	test/basn6a04.png
 
 noinst_HEADERS = \
+	global.h \
 	snprintf.c \
 	pngex.h \
 	mngex.h \

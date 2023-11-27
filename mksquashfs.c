@@ -1,10 +1,11 @@
 /*
  * Create a squashfs filesystem.  This is a highly compressed read only filesystem.
  *
- * Copyright (c) 2002, 2003, 2004 Phillip Lougher <plougher@users.sourceforge.net>
- *
- * modified by  Christian Leber <christian@leber.de>
- *
+ * Copyright (c) 2002, 2003, 2004, 2005
+ * Phillip Lougher <phillip@lougher.demon.co.uk>
+ * 
+ * modified by  Christian Leber <christian@leber.de>  in 2005
+ * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2,
@@ -41,13 +42,15 @@
 #include <setjmp.h>
 #include <sys/mman.h>
 
-#include "mksquashfs.h"
 #include <squashfs_fs.h>
+#include "mksquashfs.h"
+#include "global.h"
 
 #include "mycompress2.h"
 #ifdef __cplusplus
 extern "C" { /* I really dislike this - iwj. */
 #endif
+
 
 #ifdef SQUASHFS_TRACE
 #define TRACE(s, args...)		printf("mksquashfs: "s, ## args)
@@ -59,6 +62,8 @@ extern "C" { /* I really dislike this - iwj. */
 #define ERROR(s, args...)		do { fprintf(stderr, s, ## args); } while(0)
 #define EXIT_MKSQUASHFS()		do { if(restore)\
 					restorefs();\
+					if(destination_file && !block_device)\
+					unlink(destination_file);\
 					exit(1); } while(0)
 #define BAD_ERROR(s, args...)		do {\
 					fprintf(stderr, "FATAL ERROR:" s, ##args);\
@@ -200,6 +205,9 @@ int block_device = 0;
 /* flag indicating whether files are sorted using sort list(s) */
 int sorted = 0;
 
+/* save destination file name for deleting on error */
+char *destination_file = NULL;
+
 /* structure to used to pass in a pointer or an integer
  * to duplicate buffer read helper functions.
  */
@@ -272,11 +280,18 @@ unsigned int mangle(char *d, char *s, int size, int block_size, int uncompressed
 	unsigned long c_byte = block_size << 1;
 	unsigned int res;
 
-	//if(!uncompressed && (res = compress2(d, &c_byte, s, size, 9)) != Z_OK) {
+/*	if(!uncompressed && (res = compress2(d, &c_byte, s, size, 9)) != Z_OK) {
+		if(res == Z_MEM_ERROR)
+			BAD_ERROR("zlib::compress failed, not enough memory\n");
+		else if(res == Z_BUF_ERROR)
+			BAD_ERROR("zlib::compress failed, not enough room in output buffer\n");
+		else
+			BAD_ERROR("zlib::compress failed, unknown error %d\n", res);
+		return 0;
+	}*/
 	if(!uncompressed) {
-	 c_byte = mycompress2((unsigned char *)d, (unsigned char *) s,size,block_size,data_block);//) {
-//			printf("zlib::compress failed, unknown error");
-	}
+		c_byte = mycompress2((unsigned char *)d, (unsigned char *) s,size,block_size,data_block);//) {
+ 	}
 
 	if(uncompressed || c_byte >= size) {
 		memcpy(d, s, size);
@@ -625,7 +640,7 @@ int create_inode(squashfs_inode *i_no, char *filename, int type, int byte_size, 
 	*i_no = MKINODE(inode);
 	inode_count ++;
 
-	TRACE("Created inode 0x%Lx, type %d, uid %d, guid %d\n", *i_no, type, base->uid, base->guid);
+	TRACE("Created inode 0x%llx, type %d, uid %d, guid %d\n", *i_no, type, base->uid, base->guid);
 
 	return TRUE;
 }
@@ -796,7 +811,7 @@ int write_dir(squashfs_inode *inode, char *filename, struct directory *dir)
 		unsigned char *dirp;
 		int count;
 
-		TRACE("Directory contents of inode 0x%Lx\n", *inode);
+		TRACE("Directory contents of inode 0x%llx\n", *inode);
 		dirp = dir->buff;
 		while(dirp < dir->p) {
 			char buffer[SQUASHFS_NAME_LEN + 1];
@@ -1119,7 +1134,7 @@ int write_file(squashfs_inode *inode, char *filename, long long size, int *dupli
 		frag_bytes = 0;
 
 	if(size > read_size)
-		ERROR("file %s truncated to %Ld bytes\n", filename, SQUASHFS_MAX_FILE_SIZE);
+		ERROR("file %s truncated to %lld bytes\n", filename, SQUASHFS_MAX_FILE_SIZE);
 
 	total_bytes += read_size;
 	if((file = open(filename, O_RDONLY)) == -1) {
@@ -1443,7 +1458,7 @@ int dir_scan(squashfs_inode *inode, char *pathname, int (_opendir)(char *, struc
 				squashfs_type = SQUASHFS_FILE_TYPE;
 				if(!sorted) {
 					result = write_file(inode, filename, buf.st_size, &duplicate_file);
-					INFO("file %s, uncompressed size %Ld bytes, %s\n", filename, buf.st_size, duplicate_file ? "DUPLICATE" : "");
+					INFO("file %s, uncompressed size %lld bytes, %s\n", filename, buf.st_size, duplicate_file ? "DUPLICATE" : "");
 				} else
 					result = get_sorted_inode(inode, &buf);
 				break;
@@ -1456,35 +1471,35 @@ int dir_scan(squashfs_inode *inode, char *pathname, int (_opendir)(char *, struc
 			case S_IFLNK:
 				squashfs_type = SQUASHFS_SYMLINK_TYPE;
 				result = create_inode(inode, filename, squashfs_type, 0, 0, 0, NULL, NULL, NULL, 0, 0);
-				INFO("symbolic link %s inode 0x%Lx\n", dir_name, *inode);
+				INFO("symbolic link %s inode 0x%llx\n", dir_name, *inode);
 				sym_count ++;
 				break;
 
 			case S_IFCHR:
 				squashfs_type = SQUASHFS_CHRDEV_TYPE;
 				result = create_inode(inode, filename, squashfs_type, 0, 0, 0, NULL, NULL, NULL, 0, 0);
-				INFO("character device %s inode 0x%Lx\n", dir_name, *inode);
+				INFO("character device %s inode 0x%llx\n", dir_name, *inode);
 				dev_count ++;
 				break;
 
 			case S_IFBLK:
 				squashfs_type = SQUASHFS_BLKDEV_TYPE;
 				result = create_inode(inode, filename, squashfs_type, 0, 0, 0, NULL, NULL, NULL, 0, 0);
-				INFO("block device %s inode 0x%Lx\n", dir_name, *inode);
+				INFO("block device %s inode 0x%llx\n", dir_name, *inode);
 				dev_count ++;
 				break;
 
 			case S_IFIFO:
 				squashfs_type = SQUASHFS_FIFO_TYPE;
 				result = create_inode(inode, filename, squashfs_type, 0, 0, 0, NULL, NULL, NULL, 0, 0);
-				INFO("fifo %s inode 0x%Lx\n", dir_name, *inode);
+				INFO("fifo %s inode 0x%llx\n", dir_name, *inode);
 				fifo_count ++;
 				break;
 
 			case S_IFSOCK:
 				squashfs_type = SQUASHFS_SOCKET_TYPE;
 				result = create_inode(inode, filename, squashfs_type, 0, 0, 0, NULL, NULL, NULL, 0, 0);
-				INFO("unix domain socket %s inode 0x%Lx\n", dir_name, *inode);
+				INFO("unix domain socket %s inode 0x%llx\n", dir_name, *inode);
 				sock_count ++;
 				break;
 
@@ -1498,7 +1513,7 @@ int dir_scan(squashfs_inode *inode, char *pathname, int (_opendir)(char *, struc
 	}
 
 	result = write_dir(inode, pathname, &dir);
-	INFO("directory %s inode 0x%Lx\n", pathname, *inode);
+	INFO("directory %s inode 0x%llx\n", pathname, *inode);
 
 error:
 	linux_freedir(&dir);
@@ -1511,7 +1526,7 @@ unsigned int slog(unsigned int block)
 {
 	int i;
 
-	for(i = 9; i <= 16; i++)
+	for(i = 12; i <= 16; i++)
 		if(block == (1 << i))
 			return i;
 	return 0;
@@ -1580,8 +1595,8 @@ void add_old_root_entry(char *name, squashfs_inode inode, int type)
 
 
 #define VERSION() \
-	printf("mksquashfs version 2.1\n");\
-	printf("copyright (C) 2004 Phillip Lougher (plougher@users.sourceforge.net)\n\n"); \
+	printf("mksquashfs version 2.2-r2\n");\
+	printf("copyright (C) 2005 Phillip Lougher (phillip@lougher.demon.co.uk)\n\n"); \
     	printf("This program is free software; you can redistribute it and/or\n");\
 	printf("modify it under the terms of the GNU General Public License\n");\
 	printf("as published by the Free Software Foundation; either version 2,\n");\
@@ -1623,7 +1638,7 @@ int main(int argc, char *argv[])
 			}
 
 			if((block_log = slog(block_size)) == 0) {
-				ERROR("%s: -b block size not power of two or not between 512 and 64K\n", argv[0]);
+				ERROR("%s: -b block size not power of two or not between 4096 and 64K\n", argv[0]);
 				exit(1);
 			}
 		} else if(strcmp(argv[i], "-ef") == 0) {
@@ -1776,6 +1791,15 @@ printOptions:
 		}
 	}
 
+
+	for(i = 0; i < source; i++)
+		if(stat(source_path[i], &buf) == -1) {
+			fprintf(stderr, "Cannot stat source directory \"%s\" because %s\n", source_path[i], strerror(errno));
+			EXIT_MKSQUASHFS();
+		}
+
+
+	destination_file = argv[source + 1];
 	if(stat(argv[source + 1], &buf) == -1) {
 		if(errno == ENOENT) { /* Does not exist */
 			if((fd = open(argv[source + 1], O_CREAT | O_TRUNC | O_RDWR, S_IRWXU)) == -1) {
@@ -1809,16 +1833,9 @@ printOptions:
 
 		if(!delete) {
 		        if(read_super(fd, &sBlk, &orig_be, argv[source + 1]) == 0) {
-				if(S_ISREG(buf.st_mode)) { /* reopen truncating file */
-					close(fd);
-			                if((fd = open(argv[source + 1], O_TRUNC  | O_RDWR)) == -1) {
-						perror("Could not open regular file for writing as destination");
-						exit(1);
-					}
-				}
-				delete = TRUE;
+				ERROR("Failed to read existing filesystem - will not overwrite - ABORTING!\n");
+				EXIT_MKSQUASHFS();
 			}
-
 		}
 	}
 
@@ -1842,7 +1859,7 @@ printOptions:
 	if(i != argc) {
 		if(++i == argc) {
 			ERROR("%s: -e missing arguments\n", argv[0]);
-			exit(1);
+			EXIT_MKSQUASHFS();
 		}
 		while(i < argc && add_exclude(argv[i++]));
 	}
@@ -1885,7 +1902,7 @@ printOptions:
 				(squashfs_uid *) uids, &uid_count, (squashfs_uid *) guids, &guid_count,
 				&total_bytes, &total_inode_bytes, &total_directory_bytes, add_old_root_entry, &fragment_table)) == 0) {
 			ERROR("Failed to read existing filesystem - will not overwrite - ABORTING!\n");
-			exit(1);
+			EXIT_MKSQUASHFS();
 		}
 		if((fragments = sBlk.fragments))
 			fragment_table = (squashfs_fragment_entry *) realloc((char *) fragment_table, ((fragments + FRAG_SIZE - 1) & ~(FRAG_SIZE - 1)) * sizeof(squashfs_fragment_entry)); 
@@ -1895,8 +1912,8 @@ printOptions:
 		printf("All -be, -le, -b, -noI, -noD, -noF, -check_data, no-duplicates, no-fragments, -always-use-fragments and -2.0 options ignored\n");
 		printf("\nIf appending is not wanted, please re-run with -noappend specified!\n\n");
 
-		compressed_data = inode_dir_offset + (inode_dir_file_size & ~(SQUASHFS_METADATA_SIZE - 1));
-		uncompressed_data = inode_dir_offset + (inode_dir_file_size & (SQUASHFS_METADATA_SIZE - 1));
+		compressed_data = inode_dir_offset + inode_dir_file_size & ~(SQUASHFS_METADATA_SIZE - 1);
+		uncompressed_data = inode_dir_offset + inode_dir_file_size & (SQUASHFS_METADATA_SIZE - 1);
 		
 		/* save original filesystem state for restoring ... */
 		sfragments = fragments;
@@ -1959,11 +1976,6 @@ printOptions:
 #endif
 
 	block_offset = check_data ? 3 : 2;
-
-	if(stat(source_path[0], &buf) == -1) {
-		perror("Cannot stat source directory");
-		EXIT_MKSQUASHFS();
-	}
 
 	if(sorted)
 		sort_files_and_write(source, source_path);
