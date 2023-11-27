@@ -1,0 +1,16 @@
+                          ===========================
+                          mksquashfs2 compression
+                          ===========================
+
+This tool is exactly like the mksquashfs in the squashfs package from http://squashfs.sf.net
+it just uses the 7-zip routines for compression, so it is for example possible to compress
+Kanotix better:
+-rw-r--r--  1 root root 716785664 Apr 13 22:51 kanotix_2005-2_7z.iso
+-rw-r--r--  1 ijuz ijuz 736030720 Apr  9 18:39 /work/iso/KANOTIX-2005-02.iso
+
+or for Knoppix 3.7:
+-rw-r--r--   1 ijuz ijuz  732942336 Dec  9 19:18 KNOPPIX_V3.7-2004-12-08-DE.iso  <- uses cloop
+-rw-r--r--   1 ijuz ijuz  708526080 Jan 10 15:47 knoppix-3.7_squashfs_0.2.iso
+
+
+Christian Leber <christian@leber.de>
