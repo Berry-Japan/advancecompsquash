@@ -9,7 +9,7 @@ Name:		%{name}
 Summary:	The Compressed Loopback Block Device
 Version:	%{version}
 Release:	%{release}
-Copyright:	GPL
+License:	GPL
 Group:		System Environment/Kernel
 Source:		advancecompsquash-%{version}.tar.bz2
 Buildroot:	%{_tmppath}/%{name}-%{version}
