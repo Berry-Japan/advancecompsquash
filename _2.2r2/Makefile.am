@@ -1,7 +1,4 @@
 ## Process this file with automake to produce Makefile.in
-AM_CFLAGS = -Wall -Os
-AM_LDFLAGS = -lpthread
-AM_CXXFLAGS = -Wall -Os
 
 bin_PROGRAMS = mksquashfs2
 
@@ -10,17 +7,11 @@ mksquashfs2_SOURCES = \
 	mksquashfs.h \
 	read_fs.h \
 	squashfs_fs.h \
-	sort.h \
-	pseudo.h \
-	squashfs_compat.h \
-	squashfs_swap.h \
 	mycompress2.h \
 	mksquashfs.c \
 	mycompress2.cc \
 	read_fs.c \
 	sort.c \
-	swap.c \
-	pseudo.c \
 	redef.cc \
 	file.cc \
 	data.cc \
@@ -229,7 +220,7 @@ DISTDOS_DOC = \
 	doc/advdef.txt doc/advzip.txt doc/advpng.txt doc/advmng.txt \
 	doc/readme.txt doc/authors.txt doc/history.txt \
 	doc/advdef.html doc/advzip.html doc/advpng.html doc/advmng.html \
-	doc/readme.html doc/authors.html doc/history.html
+	doc/readme.html doc/authors.html doc/history.html 
 
 distdos: $(DISTDOS_ROOT) $(DISTDOS_DOC)
 	i586-pc-msdosdjgpp-strip advdef.exe
@@ -262,3 +253,5 @@ DISTWEB = \
 	doc/advdef.hh doc/advzip.hh doc/advpng.hh doc/advmng.hh doc/history.hh
 
 web: $(DISTWEB)
+
+

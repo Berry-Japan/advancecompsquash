@@ -7,8 +7,8 @@ echo "This may take a while ..."
 touch configure.ac
 
 # Regenerate configuration files
-aclocal-1.9
-automake-1.9 --add-missing --force-missing
+aclocal
+automake --add-missing --force-missing
 autoconf
 autoheader && touch config.h.in
 

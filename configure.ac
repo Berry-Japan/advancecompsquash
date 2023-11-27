@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT([AdvanceCOMPsquash],[2.2r2])
+AC_INIT([AdvanceCOMPsquash],[4.0])
 AC_CONFIG_SRCDIR([mksquashfs.c])
 AM_INIT_AUTOMAKE([foreign no-dependencies])
 AC_CONFIG_HEADERS([config.h])
@@ -49,4 +49,3 @@ CXXFLAGS="$CXXFLAGS -DUSE_ERROR_SILENT -DUSE_COMPRESS"
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
-

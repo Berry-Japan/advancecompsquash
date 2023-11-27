@@ -1,0 +1,47 @@
+--- mksquashfs.c.orig	2005-09-09 07:34:28.000000000 +0900
++++ mksquashfs.c	2006-01-05 00:30:21.000000000 +0900
+@@ -3,7 +3,9 @@
+  *
+  * Copyright (c) 2002, 2003, 2004, 2005
+  * Phillip Lougher <phillip@lougher.demon.co.uk>
+- *
++ * 
++ * modified by  Christian Leber <christian@leber.de>  in 2005
++ * 
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public License
+  * as published by the Free Software Foundation; either version 2,
+@@ -44,6 +46,12 @@
+ #include "mksquashfs.h"
+ #include "global.h"
+ 
++#include "mycompress2.h"
++#ifdef __cplusplus
++extern "C" { /* I really dislike this - iwj. */
++#endif
++
++
+ #ifdef SQUASHFS_TRACE
+ #define TRACE(s, args...)		printf("mksquashfs: "s, ## args)
+ #else
+@@ -272,7 +280,7 @@ unsigned int mangle(char *d, char *s, in
+ 	unsigned long c_byte = block_size << 1;
+ 	unsigned int res;
+ 
+-	if(!uncompressed && (res = compress2(d, &c_byte, s, size, 9)) != Z_OK) {
++/*	if(!uncompressed && (res = compress2(d, &c_byte, s, size, 9)) != Z_OK) {
+ 		if(res == Z_MEM_ERROR)
+ 			BAD_ERROR("zlib::compress failed, not enough memory\n");
+ 		else if(res == Z_BUF_ERROR)
+@@ -280,7 +288,10 @@ unsigned int mangle(char *d, char *s, in
+ 		else
+ 			BAD_ERROR("zlib::compress failed, unknown error %d\n", res);
+ 		return 0;
+-	}
++	}*/
++	if(!uncompressed) {
++		c_byte = mycompress2((unsigned char *)d, (unsigned char *) s,size,block_size,data_block);//) {
++ 	}
+ 
+ 	if(uncompressed || c_byte >= size) {
+ 		memcpy(d, s, size);

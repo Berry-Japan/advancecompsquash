@@ -856,7 +856,7 @@ unsigned int mangle2(z_stream **strm, char *d, char *s, int size,
 		stream->zfree = Z_NULL;
 		stream->opaque = 0;
 
-		if((res = deflateInit(stream, 9)) != Z_OK) {
+		/*if((res = deflateInit(stream, 9)) != Z_OK) {
 			if(res == Z_MEM_ERROR)
 				BAD_ERROR("zlib::compress failed, not enough "
 					"memory\n");
@@ -876,7 +876,7 @@ unsigned int mangle2(z_stream **strm, char *d, char *s, int size,
 				"inconsistent\n");
 		else
 			BAD_ERROR("zlib::compress failed, unknown error %d\n",
-				res);
+				res);*/
 	}
 
 	stream->next_in = (unsigned char *) s;
@@ -884,7 +884,8 @@ unsigned int mangle2(z_stream **strm, char *d, char *s, int size,
 	stream->next_out = (unsigned char *) d;
 	stream->avail_out = block_size;
 
-	res = deflate(stream, Z_FINISH);
+	c_byte = mycompress2((unsigned char *)d, (unsigned char *)s, size, block_size, data_block);
+	/*res = deflate(stream, Z_FINISH);
 	if(res != Z_STREAM_END && res != Z_OK) {
 		if(res == Z_STREAM_ERROR)
 			BAD_ERROR("zlib::compress failed, stream state "
@@ -899,7 +900,8 @@ unsigned int mangle2(z_stream **strm, char *d, char *s, int size,
 
 	c_byte = stream->total_out;
 
-	if(res != Z_STREAM_END || c_byte >= size) {
+	if(res != Z_STREAM_END || c_byte >= size) {*/
+	if(c_byte >= size) {
 notcompressed:
 		memcpy(d, s, size);
 		return size | (data_block ? SQUASHFS_COMPRESSED_BIT_BLOCK :
